@@ -18,7 +18,7 @@ STOPWORD = stopwords.words('english')
 lem = WordNetLemmatizer()
 stem = PorterStemmer()
 
-df = pd.read_csv('../dataset/raw_data/fulltrain.csv', header = None)
+df = pd.read_csv('../dataset/raw_data/balancedtest.csv', header = None)
 
 # For lemmatization 
 def pos_to_morphy(pos_tag):
@@ -93,7 +93,7 @@ def main():
     # df.head()
 
     # Export to csv
-    df.to_csv('../dataset/prep.csv') 
+    df.to_csv('../dataset/testprep.csv') 
 
 
 # Lets you run this code
