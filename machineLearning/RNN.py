@@ -52,5 +52,7 @@ def RNN_model(embedding_output: int, class_label: int):
     
     return model
 
+    
+
 
 

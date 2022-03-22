@@ -1,8 +1,6 @@
 import pandas as pd 
 import numpy as np
 
-df = pd.read_csv('../dataset/prep.csv')
-
 from keras.preprocessing.text import Tokenizer
 from keras.preprocessing.sequence import pad_sequences
 from sklearn.model_selection import train_test_split
@@ -14,7 +12,15 @@ total_vocabulary = 100000
 max_sequence_length = 200
 embedding_dim = 100
 
+df = pd.read_csv('../dataset/prep.csv')
+
 def preprocess(df, text_column_name):
+    """
+    Creates the 2d vector for each of our sentences
+    :param feature_column: basically the column that containts our text sentence
+    :param num_words: limit number of words for the tokenizer to the most frequent x amount
+    :param max_len: the max length of what we want each sentence to have
+    """
     tokenizer = Tokenizer(num_words=total_vocabulary, filters='!"#$%&()*+,-./:;<=>?@[\]^_`{|}~', lower=True)
     tokenizer.fit_on_texts(df[text_column_name].values)
     word_index = tokenizer.word_index
@@ -29,21 +35,31 @@ def preprocess(df, text_column_name):
 def LSTM_model(X_train):
     model = Sequential()
     model.add(Embedding(total_vocabulary, embedding_dim, input_length=X_train.shape[1]))
-    model.add(SpatialDropout2D(0.2))
+    # model.add(SpatialDropout2D(0.2))
     model.add(LSTM(100, dropout=0.2, recurrent_dropout=0.2))
-    model.add(Dense(13, activation='softmax'))
+    model.add(Dense(4, activation='softmax'))
     model.compile(loss='categorical_crossentropy', optimizer='adam', metrics=['accuracy'])
+    return model
 
 def train_model(model, X_train, y_train):
-
     epochs = 5
     batch_size = 64
+    print(X_train.shape)
+    print(y_train.shape)
     model.fit(X_train, y_train, epochs=epochs, batch_size=batch_size,validation_split=0.1,callbacks=[EarlyStopping(monitor='val_loss', patience=3, min_delta=0.0001)])
 
+def one_hot_vec(y):
+    y-=1
+    print("y",y)
+    one_hot_vector = np.zeros((y.size, y.max()+1))
+    one_hot_vector[np.arange(y.size), y] = 1
+    print(one_hot_vector.shape)
+    return one_hot_vector
 
 def main():
     X = preprocess(df, "clean")
-    X_train, X_test, y_train, y_test = train_test_split(X, df["0"], test_size = 0.10, random_state = 42)
+
+    X_train, X_test, y_train, y_test = train_test_split(X, one_hot_vec(df["n"]), test_size = 0.10, random_state = 42)
     print(X_train.shape,y_train.shape)
     print(X_test.shape,y_test.shape)
 
@@ -53,8 +69,6 @@ def main():
 
     accr = model.evaluate(X_test, y_test)
     print('Test set\n  Loss: {:0.3f}\n  Accuracy: {:0.3f}'.format(accr[0],accr[1]))
-
-
 
 main()
 
