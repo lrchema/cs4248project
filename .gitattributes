@@ -1,4 +1,0 @@
-prep.csv filter=lfs diff=lfs merge=lfs -text
-fulltrain.csv filter=lfs diff=lfs merge=lfs -text
-dataset/prep.csv filter=lfs diff=lfs merge=lfs -text
-dataset/raw_data/fulltrain.csv filter=lfs diff=lfs merge=lfs -text
