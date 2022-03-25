@@ -1,5 +1,6 @@
-import pandas as pd 
+import pandas as pd
 import numpy as np
+import seaborn as sns
 
 from keras.preprocessing.text import Tokenizer
 from keras.preprocessing.sequence import pad_sequences
@@ -7,6 +8,7 @@ from sklearn.model_selection import train_test_split
 from keras.models import Sequential
 from keras.layers import Dense, LSTM, Embedding, SpatialDropout2D
 from keras.callbacks import EarlyStopping
+from sklearn.metrics import confusion_matrix
 
 total_vocabulary = 100000
 max_sequence_length = 200
@@ -70,6 +72,17 @@ def main():
     accr = model.evaluate(X_test, y_test)
     print('Test set\n  Loss: {:0.3f}\n  Accuracy: {:0.3f}'.format(accr[0],accr[1]))
 
+    y_pred = model.predict(X_test)
+    cm = confusion_matrix(y_test, y_pred)
+    cm_df = pd.DataFrame(cm,
+                         index = ['Satire','Hoax','Propaganda', 'Reliable News'], 
+                         columns = ['Satire','Hoax','Propaganda', 'Reliable News'])
+    plt.figure(figsize=(5,4))
+    sns.heatmap(cm_df, annot=True, fmt=".0f")
+    plt.title('Confusion Matrix')
+    plt.ylabel('Actal Values')
+    plt.xlabel('Predicted Values')
+    plt.savefig("LSTMcm.jpg")
 main()
 
 
