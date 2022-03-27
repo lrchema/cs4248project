@@ -17,6 +17,8 @@ from keras.layers import Dropout, Activation, Bidirectional, GlobalMaxPool1D
 from keras.models import Sequential
 from keras.preprocessing import text, sequence
 
+import pickle
+
 ## Change this value Accordingly. This is suppose to represent the unique number of tokens we have in our corpus
 total_vocabulary = 100000
 max_sequence_length = 200
@@ -103,7 +105,7 @@ def RNN_model(X_train):
     # return model
 
 def train_model(model, X_train, y_train):
-    epochs = 5
+    epochs = 1
     batch_size = 64
     model.fit(X_train, y_train, epochs=epochs, batch_size=batch_size,validation_split=0.1)
 
@@ -124,6 +126,9 @@ def main():
     print(X_test.shape,y_test.shape)
 
     model = RNN_model(X_train)
+
+    pickleFile = 'trainedRNN.sav'
+    pickle.dump(model, open(pickleFile, 'wb'))
 
     train_model(model, X_train, y_train)
 
