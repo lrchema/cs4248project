@@ -9,6 +9,7 @@ from keras.models import Sequential
 from keras.layers import Dense, LSTM, Embedding, SpatialDropout2D
 from keras.callbacks import EarlyStopping
 from sklearn.metrics import confusion_matrix
+from matplotlib import pyplot as plt
 
 total_vocabulary = 100000
 max_sequence_length = 200
@@ -44,7 +45,7 @@ def LSTM_model(X_train):
     return model
 
 def train_model(model, X_train, y_train):
-    epochs = 5
+    epochs = 1
     batch_size = 64
     print(X_train.shape)
     print(y_train.shape)
@@ -73,6 +74,8 @@ def main():
     print('Test set\n  Loss: {:0.3f}\n  Accuracy: {:0.3f}'.format(accr[0],accr[1]))
 
     y_pred = model.predict(X_test)
+    y_pred=np.argmax(y_pred, axis=1)
+    y_test=np.argmax(y_test, axis=1)
     cm = confusion_matrix(y_test, y_pred)
     cm_df = pd.DataFrame(cm,
                          index = ['Satire','Hoax','Propaganda', 'Reliable News'], 
