@@ -9,7 +9,6 @@ from keras.models import Sequential
 from keras.layers import Dense, LSTM, Embedding, SpatialDropout2D
 from keras.callbacks import EarlyStopping
 from sklearn.metrics import confusion_matrix
-import matplotlib.pyplot as plt
 
 import pickle
 
@@ -17,7 +16,7 @@ total_vocabulary = 100000
 max_sequence_length = 200
 embedding_dim = 100
 
-df = pd.read_csv('prep.csv')
+df = pd.read_pickle("distilroberta_bert_embed.pkl")
 
 def preprocess(df, text_column_name):
     """
@@ -47,7 +46,7 @@ def LSTM_model(X_train):
     return model
 
 def train_model(model, X_train, y_train):
-    epochs = 1
+    epochs = 5
     batch_size = 64
     print(X_train.shape)
     print(y_train.shape)
@@ -62,7 +61,7 @@ def one_hot_vec(y):
     return one_hot_vector
 
 def main():
-    X = preprocess(df, "clean")
+    X = preprocess(df, "bert_embed")
 
     X_train, X_test, y_train, y_test = train_test_split(X, one_hot_vec(df["n"]), test_size = 0.10, random_state = 42)
     print(X_train.shape,y_train.shape)
@@ -80,8 +79,7 @@ def main():
 
     y_pred_oh = model.predict(X_test)
     y_pred = np.argmax(y_pred_oh, axis=1)+1
-    y_test_decoded = np.argmax(y_test, axis=1)+1
-    cm = confusion_matrix(y_test_decoded, y_pred)
+    cm = confusion_matrix(df["n"], y_pred)
     cm_df = pd.DataFrame(cm,
                          index = ['Satire','Hoax','Propaganda', 'Reliable News'], 
                          columns = ['Satire','Hoax','Propaganda', 'Reliable News'])
@@ -91,6 +89,7 @@ def main():
     plt.ylabel('Actal Values')
     plt.xlabel('Predicted Values')
     plt.savefig("LSTMcm.jpg")
+    plt.show()
 main()
 
 

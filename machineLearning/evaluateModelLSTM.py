@@ -1,6 +1,16 @@
 import pandas as pd
+import re
+from sklearn.feature_extraction.text import TfidfVectorizer
+from sklearn.feature_extraction.text import CountVectorizer
+import matplotlib.pyplot as plt
 import numpy as np
+from sklearn.utils import resample
+from scipy import sparse
+import gensim
+import collections 
+from collections import Counter
 import seaborn as sns
+import pickle
 
 from keras.preprocessing.text import Tokenizer
 from keras.preprocessing.sequence import pad_sequences
@@ -8,16 +18,46 @@ from sklearn.model_selection import train_test_split
 from keras.models import Sequential
 from keras.layers import Dense, LSTM, Embedding, SpatialDropout2D
 from keras.callbacks import EarlyStopping
+
+from sklearn.metrics import f1_score
+from sklearn.linear_model import LogisticRegression
+from sklearn.naive_bayes import MultinomialNB
+
 from sklearn.metrics import confusion_matrix
 import matplotlib.pyplot as plt
 
-import pickle
+## for sentiment
+from textblob import TextBlob
 
 total_vocabulary = 100000
 max_sequence_length = 200
 embedding_dim = 100
 
-df = pd.read_csv('prep.csv')
+def predict(model, testX):
+    pred = model.predict(testX)
+    return pred
+
+def read_file(filename):
+    return pd.read_csv(filename)
+
+def load_model(filename):
+    return pickle.load(open(filename, 'rb'))
+
+features = ['sentiment', 'word_count', 'char_count', 'sentence_count', 'avg_word_length', 'avg_sentence_length', 'unique_word_count', 'unique_total_ratio']
+
+def length_features(df):
+    df['word_count'] = df["clean"].apply(lambda x: len(str(x).split(" ")))
+    df['char_count'] = df["clean"].apply(lambda x: sum(len(word) for word in str(x).split(" ")))
+    df['sentence_count'] = df["clean"].apply(lambda x: len(str(x).split(".")))
+    df['avg_word_length'] = df['char_count'] / df['word_count']
+    df['avg_sentence_length'] = df['word_count'] / df['sentence_count']
+    df['unique_word_count'] = df["clean"].apply(lambda x: len(set(str(x).split(" "))))
+    df['unique_total_ratio'] = df['unique_word_count'] / df['word_count']
+
+
+def sentiment(df):
+    df["sentiment"] = df['clean'].apply(lambda x: 
+                   TextBlob(x).sentiment.polarity)
 
 def preprocess(df, text_column_name):
     """
@@ -47,7 +87,7 @@ def LSTM_model(X_train):
     return model
 
 def train_model(model, X_train, y_train):
-    epochs = 1
+    epochs = 5
     batch_size = 64
     print(X_train.shape)
     print(y_train.shape)
@@ -61,36 +101,30 @@ def one_hot_vec(y):
     print(one_hot_vector.shape)
     return one_hot_vector
 
+
 def main():
-    X = preprocess(df, "clean")
+    df = read_file("../dataset/testprep.csv")
 
-    X_train, X_test, y_train, y_test = train_test_split(X, one_hot_vec(df["n"]), test_size = 0.10, random_state = 42)
-    print(X_train.shape,y_train.shape)
-    print(X_test.shape,y_test.shape)
+    model = load_model('trainedLSTM.sav')
 
-    model = LSTM_model(X_train)
+    y_test = df["n"]
 
-    train_model(model, X_train, y_train)
+    y_pred_oh = predict(model, preprocess(df, "clean"))
 
-    pickleFile = 'trainedLSTM.sav'
-    pickle.dump(model, open(pickleFile, 'wb'))
-
-    accr = model.evaluate(X_test, y_test)
-    print('Test set\n  Loss: {:0.3f}\n  Accuracy: {:0.3f}'.format(accr[0],accr[1]))
-
-    y_pred_oh = model.predict(X_test)
     y_pred = np.argmax(y_pred_oh, axis=1)+1
-    y_test_decoded = np.argmax(y_test, axis=1)+1
-    cm = confusion_matrix(y_test_decoded, y_pred)
+    # evaluate model
+    score = f1_score(y_test, y_pred, average='macro')
+    print('score on validation = {}'.format(score))
+
+    cm = confusion_matrix(y_test, y_pred)
     cm_df = pd.DataFrame(cm,
                          index = ['Satire','Hoax','Propaganda', 'Reliable News'], 
                          columns = ['Satire','Hoax','Propaganda', 'Reliable News'])
-    plt.figure(figsize=(5,4))
+    plt.figure(figsize=(6,5))
     sns.heatmap(cm_df, annot=True, fmt=".0f")
     plt.title('Confusion Matrix')
     plt.ylabel('Actal Values')
     plt.xlabel('Predicted Values')
     plt.savefig("LSTMcm.jpg")
+
 main()
-
-
