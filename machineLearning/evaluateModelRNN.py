@@ -69,11 +69,17 @@ def preprocess(df, text_column_name, tokenizer=None):
     :param text_column_name: the name of column to be converted into a vector
     :model: filename of pretrained model
     """
+    # if tokenizer == None:
+    #     tokenizer = Tokenizer(num_words=total_vocabulary, filters='!"#$%&()*+,-./:;<=>?@[\]^_`{|}~', lower=True)
+    #     tokenizer.fit_on_texts(df[text_column_name].values)
+    # else:
+    #     tokenizer = load_tokenizer(tokenizer)
     if tokenizer == None:
-        tokenizer = Tokenizer(num_words=total_vocabulary, filters='!"#$%&()*+,-./:;<=>?@[\]^_`{|}~', lower=True)
-        tokenizer.fit_on_texts(df[text_column_name].values)
+        vec = TfidfVectorizer()
+        tfidf = vec.fit_transform(df['clean']).toarray()
     else:
-        tokenizer = load_tokenizer(tokenizer)
+        vec = load_tokenizer(tokenizer)
+        tfidf = vec.transform(df['clean']).toarray()
     
     word_index = tokenizer.word_index
     print('Found %s unique tokens.' % len(word_index))
@@ -81,7 +87,7 @@ def preprocess(df, text_column_name, tokenizer=None):
     X = tokenizer.texts_to_sequences(df[text_column_name].values)
     X = pad_sequences(X, maxlen=max_sequence_length)
     print('Shape of data tensor:', X.shape)
-    return X
+    return tfidf
 
 
 def LSTM_model(X_train):

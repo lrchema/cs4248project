@@ -16,6 +16,7 @@ from keras.layers import Input, Dense, LSTM, Embedding
 from keras.layers import Dropout, Activation, Bidirectional, GlobalMaxPool1D, SpatialDropout1D
 from keras.models import Sequential
 from keras.preprocessing import text, sequence
+from sklearn.feature_extraction.text import TfidfVectorizer
 
 import pickle
 
@@ -55,19 +56,22 @@ def preprocess(df, text_column_name):
     :param num_words: limit number of words for the tokenizer to the most frequent x amount
     :param max_len: the max length of what we want each sentence to have
     """
-    tokenizer = Tokenizer(num_words=total_vocabulary, filters='!"#$%&()*+,-./:;<=>?@[\]^_`{|}~', lower=True)
-    tokenizer.fit_on_texts(df[text_column_name].values)
 
-    pickleFile = 'tokenizerRNN.sav'
-    pickle.dump(tokenizer, open(pickleFile, 'wb'))
+    vec = TfidfVectorizer()
+    trainTfidf = vec.fit_transform(df['clean']).toarray()
+    # tokenizer = Tokenizer(num_words=total_vocabulary, filters='!"#$%&()*+,-./:;<=>?@[\]^_`{|}~', lower=True)
+    # tokenizer.fit_on_texts(df[text_column_name].values)
 
-    word_index = tokenizer.word_index
-    print('Found %s unique tokens.' % len(word_index))
+    pickleFile = 'vecRNN.sav'
+    pickle.dump(vec, open(pickleFile, 'wb'))
 
-    X = tokenizer.texts_to_sequences(df[text_column_name].values)
-    X = pad_sequences(X, maxlen=max_sequence_length)
-    print('Shape of data tensor:', X.shape)
-    return X
+    # word_index = tokenizer.word_index
+    # print('Found %s unique tokens.' % len(word_index))
+
+    # X = tokenizer.texts_to_sequences(df[text_column_name].values)
+    # X = pad_sequences(X, maxlen=max_sequence_length)
+    print('Shape of data tensor:', trainTfidf.shape)
+    return trainTfidf
 
 def RNN_model(X_train):
     """
