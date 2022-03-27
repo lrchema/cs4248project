@@ -47,6 +47,12 @@ class MinimalRNNCell(keras.layers.Layer):
         return output, [output]
 
 def preprocess(df, text_column_name):
+    """
+    Creates the 2d vector for each of our sentences
+    :param feature_column: basically the column that containts our text sentence
+    :param num_words: limit number of words for the tokenizer to the most frequent x amount
+    :param max_len: the max length of what we want each sentence to have
+    """
     tokenizer = Tokenizer(num_words=total_vocabulary, filters='!"#$%&()*+,-./:;<=>?@[\]^_`{|}~', lower=True)
     tokenizer.fit_on_texts(df[text_column_name].values)
     word_index = tokenizer.word_index
@@ -101,10 +107,18 @@ def train_model(model, X_train, y_train):
     batch_size = 64
     model.fit(X_train, y_train, epochs=epochs, batch_size=batch_size,validation_split=0.1)
 
+def one_hot_vec(y):
+    y-=1
+    print("y",y)
+    one_hot_vector = np.zeros((y.size, y.max()+1))
+    one_hot_vector[np.arange(y.size), y] = 1
+    print(one_hot_vector.shape)
+    return one_hot_vector
+
 def main():
     df = pd.read_csv('../dataset/prep.csv')
     X = preprocess(df, "clean")
-    X_train, X_test, y_train, y_test = train_test_split(X, df["0"], test_size = 0.10, random_state = 42)
+    X_train, X_test, y_train, y_test = train_test_split(X, one_hot_vec(df["n"]), test_size = 0.10, random_state = 42)
 
     print(X_train.shape,y_train.shape)
     print(X_test.shape,y_test.shape)
