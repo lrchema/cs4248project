@@ -13,7 +13,7 @@ from sklearn.model_selection import train_test_split
 
 from keras.preprocessing.sequence import pad_sequences
 from keras.layers import Input, Dense, LSTM, Embedding
-from keras.layers import Dropout, Activation, Bidirectional, GlobalMaxPool1D
+from keras.layers import Dropout, Activation, Bidirectional, GlobalMaxPool1D, SpatialDropout1D
 from keras.models import Sequential
 from keras.preprocessing import text, sequence
 
@@ -57,6 +57,10 @@ def preprocess(df, text_column_name):
     """
     tokenizer = Tokenizer(num_words=total_vocabulary, filters='!"#$%&()*+,-./:;<=>?@[\]^_`{|}~', lower=True)
     tokenizer.fit_on_texts(df[text_column_name].values)
+
+    pickleFile = 'tokenizerRNN.sav'
+    pickle.dump(tokenizer, open(pickleFile, 'wb'))
+
     word_index = tokenizer.word_index
     print('Found %s unique tokens.' % len(word_index))
 
@@ -73,15 +77,20 @@ def RNN_model(X_train):
     """
     model = Sequential()
     model.add(Embedding(total_vocabulary, embedding_dim, input_length=X_train.shape[1]))
-    model.add(layers.GRU(256, return_sequences=True))
-    model.add(layers.SimpleRNN(128))
-    # model.add(GlobalMaxPool1D())
-    model.add(Dropout(0.5))
-    model.add(Dense(50, activation='relu'))
-    model.add(Dropout(0.5))
-    model.add(Dense(50, activation='relu'))
-    model.add(Dropout(0.5))
-    model.add(Dense(class_label, activation='softmax'))
+    # model.add(layers.GRU(256, return_sequences=True))
+    # model.add(layers.SimpleRNN(128))
+    # # model.add(GlobalMaxPool1D())
+    # model.add(Dropout(0.5))
+    # model.add(Dense(50, activation='relu'))
+    # model.add(Dropout(0.5))
+    # model.add(Dense(50, activation='relu'))
+    # model.add(Dropout(0.5))
+    # model.add(Dense(class_label, activation='softmax'))
+
+    model.add(SpatialDropout1D(0.2))
+    model.add(LSTM(100, dropout=0.2, recurrent_dropout=0.2))
+    model.add(Dense(13, activation='softmax'))
+    model.compile(loss='categorical_crossentropy', optimizer='adam', metrics=['accuracy'])
 
     model.compile(loss='categorical_crossentropy', 
             optimizer='adam', 
@@ -120,7 +129,7 @@ def one_hot_vec(y):
 def main():
     df = pd.read_csv('../dataset/prep.csv')
     X = preprocess(df, "clean")
-    X_train, X_test, y_train, y_test = train_test_split(X, one_hot_vec(df["n"]), test_size = 0.10, random_state = 42)
+    X_train, X_test, y_train, y_test = train_test_split(X, one_hot_vec(df["y"]), test_size = 0.10, random_state = 42)
 
     print(X_train.shape,y_train.shape)
     print(X_test.shape,y_test.shape)

@@ -43,6 +43,9 @@ def read_file(filename):
 def load_model(filename):
     return pickle.load(open(filename, 'rb'))
 
+def load_tokenizer(filename):
+    return pickle.load(open(filename, 'rb'))
+
 features = ['sentiment', 'word_count', 'char_count', 'sentence_count', 'avg_word_length', 'avg_sentence_length', 'unique_word_count', 'unique_total_ratio']
 
 def length_features(df):
@@ -59,15 +62,19 @@ def sentiment(df):
     df["sentiment"] = df['clean'].apply(lambda x: 
                    TextBlob(x).sentiment.polarity)
 
-def preprocess(df, text_column_name):
+def preprocess(df, text_column_name, tokenizer=None):
     """
     Creates the 2d vector for each of our sentences
-    :param feature_column: basically the column that containts our text sentence
-    :param num_words: limit number of words for the tokenizer to the most frequent x amount
-    :param max_len: the max length of what we want each sentence to have
+    :param df: dataframe
+    :param text_column_name: the name of column to be converted into a vector
+    :model: filename of pretrained model
     """
-    tokenizer = Tokenizer(num_words=total_vocabulary, filters='!"#$%&()*+,-./:;<=>?@[\]^_`{|}~', lower=True)
-    tokenizer.fit_on_texts(df[text_column_name].values)
+    if tokenizer == None:
+        tokenizer = Tokenizer(num_words=total_vocabulary, filters='!"#$%&()*+,-./:;<=>?@[\]^_`{|}~', lower=True)
+        tokenizer.fit_on_texts(df[text_column_name].values)
+    else:
+        tokenizer = load_tokenizer(tokenizer)
+    
     word_index = tokenizer.word_index
     print('Found %s unique tokens.' % len(word_index))
 
@@ -107,9 +114,10 @@ def main():
 
     model = load_model('trainedRNN.sav')
 
-    y_test = df["n"]
+    y_test = df["y"]
+    # print(y_test)
 
-    y_pred_oh = predict(model, preprocess(df, "clean"))
+    y_pred_oh = predict(model, preprocess(df, "clean", tokenizer="tokenizerRNN.sav"))
 
     y_pred = np.argmax(y_pred_oh, axis=1)+1
     # evaluate model
@@ -125,6 +133,6 @@ def main():
     plt.title('Confusion Matrix')
     plt.ylabel('Actal Values')
     plt.xlabel('Predicted Values')
-    plt.savefig("LSTMcm.jpg")
+    plt.savefig("RNNcm.jpg")
 
 main()
