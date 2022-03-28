@@ -68,7 +68,7 @@ def main():
     #X.apply(tf.convert_to_tensor)
     #tf.convert_to_tensor(X)
     Xnp = np.stack(X.to_numpy())
-    
+
     print(type(X[0]), type(Xnp))
     print("xnp shape: ", Xnp.shape)
     X_train, X_test, y_train, y_test = train_test_split(Xnp, one_hot_vec(df["y"]), test_size = 0.10, random_state = 42)
@@ -100,7 +100,7 @@ def main():
     plt.savefig("LSTMBertcmEval.jpg")
 
     dftest = pd.read_pickle("distilroberta_bert_embed_test.pkl")
-    Xt = np.stack(dftest.to_numpy())
+    Xt = np.stack(dftest["bert_em"].to_numpy())
 
     yt = dftest["y"]
     ytp = model.predict(Xt)
