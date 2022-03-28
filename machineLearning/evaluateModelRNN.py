@@ -1,14 +1,12 @@
 import pandas as pd
-from sklearn.feature_extraction.text import TfidfVectorizer, CountVectorizer
-import matplotlib.pyplot as plt
 import numpy as np
-from sklearn.utils import resample
-from scipy import sparse
-import gensim
-import collections 
-from collections import Counter
 import seaborn as sns
 import pickle
+
+from scipy import sparse
+from collections import Counter
+import matplotlib.pyplot as plt
+from textblob import TextBlob
 
 from keras.preprocessing.text import Tokenizer
 from keras.preprocessing.sequence import pad_sequences
@@ -17,20 +15,22 @@ from keras.models import Sequential
 from keras.layers import Dense, LSTM, Embedding, SpatialDropout2D
 from keras.callbacks import EarlyStopping
 
-from sklearn.metrics import f1_score
+from sklearn.metrics import f1_score, confusion_matrix
 from sklearn.linear_model import LogisticRegression
 from sklearn.naive_bayes import MultinomialNB
+from sklearn.utils import resample
+from sklearn.feature_extraction.text import TfidfVectorizer, CountVectorizer
 
-from sklearn.metrics import confusion_matrix
-import matplotlib.pyplot as plt
-
-## for sentiment
-from textblob import TextBlob
-
+############################
+#   Constant declaration   #
+############################
 total_vocabulary = 100000
 max_sequence_length = 200
 embedding_dim = 100
 
+########################
+#   Helper functions   #
+########################
 def predict(model, testX):
     pred = model.predict(testX)
     return pred
@@ -67,12 +67,7 @@ def preprocess(df, text_column_name, tokenizer=None):
     :param text_column_name: the name of column to be converted into a vector
     :model: filename of pretrained model
     """
-    if tokenizer == None:
-        tokenizer = Tokenizer(num_words=total_vocabulary, filters='!"#$%&()*+,-./:;<=>?@[\]^_`{|}~', lower=True)
-        tokenizer.fit_on_texts(df[text_column_name].values)
-    else:
-        print("Using the old tokenizer")
-        tokenizer = load_tokenizer(tokenizer)
+    tokenizer = load_tokenizer(tokenizer)
     # if tokenizer == None:
     #     vec = TfidfVectorizer()
     #     tfidf = vec.fit_transform(df['clean']).toarray()
@@ -87,16 +82,6 @@ def preprocess(df, text_column_name, tokenizer=None):
     X = pad_sequences(X, maxlen=max_sequence_length)
     print('Shape of data tensor:', X.shape)
     return X
-
-
-def LSTM_model(X_train):
-    model = Sequential()
-    model.add(Embedding(total_vocabulary, embedding_dim, input_length=X_train.shape[1]))
-    # model.add(SpatialDropout2D(0.2))
-    model.add(LSTM(100, dropout=0.2, recurrent_dropout=0.2))
-    model.add(Dense(4, activation='softmax'))
-    model.compile(loss='categorical_crossentropy', optimizer='adam', metrics=['accuracy'])
-    return model
 
 def train_model(model, X_train, y_train):
     epochs = 5

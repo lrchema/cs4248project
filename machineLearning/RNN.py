@@ -18,11 +18,17 @@ from keras.preprocessing import text, sequence
 from sklearn.model_selection import train_test_split
 from sklearn.feature_extraction.text import TfidfVectorizer
 
+############################
+#   Constant declaration   #
+############################
 total_vocabulary = 100000 # Total number of tokens you want Tokenizer to keep
 max_sequence_length = 200
 class_label = 4
 embedding_dim = 100
 
+############################
+# Preprocessing functions  #
+############################
 def preprocess_tfidf(text_column):
     """
     Creates the tfidf vector for each of our sentences
@@ -35,9 +41,8 @@ def preprocess_tfidf(text_column):
     pickleFile = 'tokenizerRNN.sav'
     pickle.dump(vectorizer, open(pickleFile, 'wb'))
 
-    print('Tf-Idf vectors:', trainTfidf.head)
+    print('Tf-Idf vectors:', trainTfidf)
     return trainTfidf
-
 
 def preprocess(text_column):
     """
@@ -57,9 +62,13 @@ def preprocess(text_column):
 
     sentence_vector = tokenizer.texts_to_sequences(text_column.values)
     sentence_vector = pad_sequences(sentence_vector, maxlen=max_sequence_length)
-    print('Sentence vector:', sentence_vector.head)
+    print('Sentence vector:', sentence_vector)
     return sentence_vector
 
+
+############################
+#      Building models     #
+############################
 def RNN_model(X_train):
     """
     Creating our RNN model.
@@ -114,6 +123,9 @@ def RNN_model_with_cell():
     
     return model
 
+############################
+#      Model training      #
+############################
 def train_model(model, X_train, y_train):
     """
     Trains the model using the data
@@ -126,20 +138,10 @@ def train_model(model, X_train, y_train):
     batch_size = 64
     model.fit(X_train, y_train, epochs=epochs, batch_size=batch_size, validation_split=0.1)
 
-def one_hot_vec(y):
-    """
-    Converts y values into one-hot vectors.
-    e.g. [1, 3, 2] -> [[0, 1, 0, 0], [0, 0, 0, 1], [0, 0, 1, 0]]
 
-    :param y: all values to be converted
-    """
-    y-=1
-    one_hot_vector = np.zeros((y.size, y.max()+1))
-    one_hot_vector[np.arange(y.size), y] = 1
-
-    print("Y transformed into one-hot vector: ", one_hot_vector)
-    return one_hot_vector
-
+############################
+#       Main function      #
+############################
 def main():
     # Read and process input into vectors
     df = pd.read_csv('../dataset/prep.csv')
@@ -149,17 +151,36 @@ def main():
     X_train, X_test, y_train, y_test = train_test_split(X, one_hot_vec(df["y"]), test_size = 0.10, random_state = 42)
 
     # Prepare and train RNN model
-    model = RNN_model(X_train)
+    model = LSTM_model(X_train)
     train_model(model, X_train, y_train)
 
     # Save this model
     pickleFile = 'trainedRNN.sav'
     pickle.dump(model, open(pickleFile, 'wb'))
 
+    # Evaluate the results
     accr = model.evaluate(X_test, y_test)
     print('Test set\n  Loss: {:0.3f}\n  Accuracy: {:0.3f}'.format(accr[0],accr[1]))
 
 main()
+
+############################
+#      Helper functions    #
+############################
+def one_hot_vec(y):
+    """
+    Converts y values into one-hot vectors.
+    e.g. [1, 3, 2] -> [[0, 1, 0, 0], [0, 0, 0, 1], [0, 0, 1, 0]]
+
+    :param y: all values to be converted
+    """
+    y -= 1
+    one_hot_vector = np.zeros((y.size, y.max()+1))
+    one_hot_vector[np.arange(y.size), y] = 1
+
+    print("Y transformed into one-hot vector: ", one_hot_vector)
+    return one_hot_vector
+
 
 # Unused class for generating model using RNN cells
 class MinimalRNNCell(keras.layers.Layer):
