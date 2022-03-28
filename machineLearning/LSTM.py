@@ -17,7 +17,7 @@ total_vocabulary = 100000
 max_sequence_length = 200
 embedding_dim = 100
 
-df = pd.read_csv('prep.csv')
+df = pd.read_csv('../dataset/prep.csv')
 
 def preprocess(df, text_column_name):
     """
@@ -64,7 +64,7 @@ def one_hot_vec(y):
 def main():
     X = preprocess(df, "clean")
 
-    X_train, X_test, y_train, y_test = train_test_split(X, one_hot_vec(df["n"]), test_size = 0.10, random_state = 42)
+    X_train, X_test, y_train, y_test = train_test_split(X, one_hot_vec(df["y"]), test_size = 0.10, random_state = 42)
     print(X_train.shape,y_train.shape)
     print(X_test.shape,y_test.shape)
 
@@ -92,5 +92,8 @@ def main():
     plt.xlabel('Predicted Values')
     plt.savefig("LSTMcm.jpg")
 main()
+
+# print(df["y"])
+# print(df.head())
 
 

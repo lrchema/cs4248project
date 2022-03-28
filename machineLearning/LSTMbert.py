@@ -9,6 +9,8 @@ from keras.models import Sequential
 from keras.layers import Dense, LSTM, Embedding, SpatialDropout2D
 from keras.callbacks import EarlyStopping
 from sklearn.metrics import confusion_matrix
+import matplotlib.pyplot as plt
+import tensorflow as tf
 
 import pickle
 
@@ -17,6 +19,7 @@ max_sequence_length = 200
 embedding_dim = 100
 
 df = pd.read_pickle("distilroberta_bert_embed.pkl")
+print(df.head())
 
 def preprocess(df, text_column_name):
     """
@@ -61,9 +64,14 @@ def one_hot_vec(y):
     return one_hot_vector
 
 def main():
-    X = preprocess(df, "bert_embed")
-
-    X_train, X_test, y_train, y_test = train_test_split(X, one_hot_vec(df["n"]), test_size = 0.10, random_state = 42)
+    X = df["bert_em"] #preprocess(df, "bert_em")
+    #X.apply(tf.convert_to_tensor)
+    #tf.convert_to_tensor(X)
+    Xnp = np.stack(X.to_numpy())
+    Xt = tf.convert_to_tensor(Xnp)
+    print(type(X[0]), type(Xnp))
+    print("xnp shape: ", Xnp.shape)
+    X_train, X_test, y_train, y_test = train_test_split(Xnp, one_hot_vec(df["y"]), test_size = 0.10, random_state = 42)
     print(X_train.shape,y_train.shape)
     print(X_test.shape,y_test.shape)
 
@@ -71,7 +79,7 @@ def main():
 
     train_model(model, X_train, y_train)
 
-    pickleFile = 'trainedLSTM.sav'
+    pickleFile = 'trainedLSTMBert.sav'
     pickle.dump(model, open(pickleFile, 'wb'))
 
     accr = model.evaluate(X_test, y_test)
@@ -79,7 +87,8 @@ def main():
 
     y_pred_oh = model.predict(X_test)
     y_pred = np.argmax(y_pred_oh, axis=1)+1
-    cm = confusion_matrix(df["n"], y_pred)
+    y_test_decoded = np.argmax(y_test, axis=1)+1
+    cm = confusion_matrix(y_test_decoded, y_pred)
     cm_df = pd.DataFrame(cm,
                          index = ['Satire','Hoax','Propaganda', 'Reliable News'], 
                          columns = ['Satire','Hoax','Propaganda', 'Reliable News'])
@@ -88,8 +97,7 @@ def main():
     plt.title('Confusion Matrix')
     plt.ylabel('Actal Values')
     plt.xlabel('Predicted Values')
-    plt.savefig("LSTMcm.jpg")
-    plt.show()
+    plt.savefig("LSTMBertcmEval.jpg")
 main()
 
 
