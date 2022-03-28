@@ -6,6 +6,15 @@ df = pd.read_csv(filename, header=None)
 df = df.rename(columns={0:"y", 1:"raw"})
 df2 = df.copy()
 
+
+
+
+# run: pip install sentence_transformers
+
+from sentence_transformers import SentenceTransformer
+
+bert_minilm_model = SentenceTransformer('all-MiniLM-L6-v2')
+
 df['bert_em'] = df['raw'].apply(bert_minilm_model.encode)
 
 df.to_csv("minilm_bert_embed.csv")
