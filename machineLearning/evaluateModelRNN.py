@@ -55,10 +55,24 @@ def length_features(df):
     df['unique_word_count'] = df["clean"].apply(lambda x: len(set(str(x).split(" "))))
     df['unique_total_ratio'] = df['unique_word_count'] / df['word_count']
 
-
 def sentiment(df):
     df["sentiment"] = df['clean'].apply(lambda x: 
                    TextBlob(x).sentiment.polarity)
+
+def preprocess_tfidf(df, text_column_name, tokenizer=None):
+    """
+    Creates the 2d vector for each of our sentences
+    :param df: dataframe
+    :param text_column_name: the name of column to be converted into a vector
+    :model: filename of pretrained model
+    """
+    vec = load_tokenizer(tokenizer)
+    tfidf = vec.transform(df['clean']).toarray()
+
+    X = tokenizer.texts_to_sequences(df[text_column_name].values)
+    X = pad_sequences(X, maxlen=max_sequence_length)
+    print('Shape of data tensor:', X.shape)
+    return X
 
 def preprocess(df, text_column_name, tokenizer=None):
     """
@@ -68,16 +82,6 @@ def preprocess(df, text_column_name, tokenizer=None):
     :model: filename of pretrained model
     """
     tokenizer = load_tokenizer(tokenizer)
-    # if tokenizer == None:
-    #     vec = TfidfVectorizer()
-    #     tfidf = vec.fit_transform(df['clean']).toarray()
-    # else:
-    #     vec = load_tokenizer(tokenizer)
-    #     tfidf = vec.transform(df['clean']).toarray()
-    
-    word_index = tokenizer.word_index
-    print('Found %s unique tokens.' % len(word_index))
-
     X = tokenizer.texts_to_sequences(df[text_column_name].values)
     X = pad_sequences(X, maxlen=max_sequence_length)
     print('Shape of data tensor:', X.shape)
