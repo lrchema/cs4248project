@@ -18,6 +18,7 @@ max_sequence_length = 200
 embedding_dim = 100
 
 df = pd.read_csv('../dataset/prep.csv')
+tokenizer = Tokenizer(num_words=total_vocabulary, filters='!"#$%&()*+,-./:;<=>?@[\]^_`{|}~', lower=True)
 
 def preprocess(df, text_column_name):
     """
@@ -26,7 +27,7 @@ def preprocess(df, text_column_name):
     :param num_words: limit number of words for the tokenizer to the most frequent x amount
     :param max_len: the max length of what we want each sentence to have
     """
-    tokenizer = Tokenizer(num_words=total_vocabulary, filters='!"#$%&()*+,-./:;<=>?@[\]^_`{|}~', lower=True)
+    
     tokenizer.fit_on_texts(df[text_column_name].values)
     word_index = tokenizer.word_index
     print('Found %s unique tokens.' % len(word_index))
@@ -85,15 +86,33 @@ def main():
     cm_df = pd.DataFrame(cm,
                          index = ['Satire','Hoax','Propaganda', 'Reliable News'], 
                          columns = ['Satire','Hoax','Propaganda', 'Reliable News'])
-    plt.figure(figsize=(5,4))
+    plt.figure(figsize=(6,5))
+    sns.heatmap(cm_df, annot=True, fmt=".0f")
+    plt.title('Confusion Matrix')
+    plt.ylabel('Actal Values')
+    plt.xlabel('Predicted Values')
+    plt.savefig("LSTMcmEval.jpg")
+
+    dftest = pd.read_csv("../dataset/testprep.csv")
+    Xt = tokenizer.texts_to_sequences(dftest["clean"].values)
+    Xt = pad_sequences(Xt, maxlen=max_sequence_length)
+
+    yt = dftest["y"]
+    ytp_oh = model.predict(Xt)
+    ytp = np.argmax(ytp_oh, axis=1)+1
+
+    cm = confusion_matrix(yt, ytp)
+    cm_df = pd.DataFrame(cm,
+                         index = ['Satire','Hoax','Propaganda', 'Reliable News'], 
+                         columns = ['Satire','Hoax','Propaganda', 'Reliable News'])
+    plt.figure(figsize=(6,5))
     sns.heatmap(cm_df, annot=True, fmt=".0f")
     plt.title('Confusion Matrix')
     plt.ylabel('Actal Values')
     plt.xlabel('Predicted Values')
     plt.savefig("LSTMcm.jpg")
+
 main()
 
 # print(df["y"])
 # print(df.head())
-
-

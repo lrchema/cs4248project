@@ -1,7 +1,7 @@
 
 import pandas as pd
 
-filename = "fulltrain.csv" 
+filename = "balancedtest.csv" 
 df = pd.read_csv(filename, header=None)
 df = df.rename(columns={0:"y", 1:"raw"})
 df2 = df.copy()
