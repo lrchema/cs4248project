@@ -13,9 +13,12 @@ from sklearn.model_selection import train_test_split
 
 from keras.preprocessing.sequence import pad_sequences
 from keras.layers import Input, Dense, LSTM, Embedding
-from keras.layers import Dropout, Activation, Bidirectional, GlobalMaxPool1D
+from keras.layers import Dropout, Activation, Bidirectional, GlobalMaxPool1D, SpatialDropout1D
 from keras.models import Sequential
 from keras.preprocessing import text, sequence
+from sklearn.feature_extraction.text import TfidfVectorizer
+
+import pickle
 
 ## Change this value Accordingly. This is suppose to represent the unique number of tokens we have in our corpus
 total_vocabulary = 100000
@@ -53,15 +56,22 @@ def preprocess(df, text_column_name):
     :param num_words: limit number of words for the tokenizer to the most frequent x amount
     :param max_len: the max length of what we want each sentence to have
     """
-    tokenizer = Tokenizer(num_words=total_vocabulary, filters='!"#$%&()*+,-./:;<=>?@[\]^_`{|}~', lower=True)
-    tokenizer.fit_on_texts(df[text_column_name].values)
-    word_index = tokenizer.word_index
-    print('Found %s unique tokens.' % len(word_index))
 
-    X = tokenizer.texts_to_sequences(df[text_column_name].values)
-    X = pad_sequences(X, maxlen=max_sequence_length)
-    print('Shape of data tensor:', X.shape)
-    return X
+    vec = TfidfVectorizer()
+    trainTfidf = vec.fit_transform(df['clean']).toarray()
+    # tokenizer = Tokenizer(num_words=total_vocabulary, filters='!"#$%&()*+,-./:;<=>?@[\]^_`{|}~', lower=True)
+    # tokenizer.fit_on_texts(df[text_column_name].values)
+
+    pickleFile = 'vecRNN.sav'
+    pickle.dump(vec, open(pickleFile, 'wb'))
+
+    # word_index = tokenizer.word_index
+    # print('Found %s unique tokens.' % len(word_index))
+
+    # X = tokenizer.texts_to_sequences(df[text_column_name].values)
+    # X = pad_sequences(X, maxlen=max_sequence_length)
+    print('Shape of data tensor:', trainTfidf.shape)
+    return trainTfidf
 
 def RNN_model(X_train):
     """
@@ -71,15 +81,20 @@ def RNN_model(X_train):
     """
     model = Sequential()
     model.add(Embedding(total_vocabulary, embedding_dim, input_length=X_train.shape[1]))
-    model.add(layers.GRU(256, return_sequences=True))
-    model.add(layers.SimpleRNN(128))
-    # model.add(GlobalMaxPool1D())
-    model.add(Dropout(0.5))
-    model.add(Dense(50, activation='relu'))
-    model.add(Dropout(0.5))
-    model.add(Dense(50, activation='relu'))
-    model.add(Dropout(0.5))
-    model.add(Dense(class_label, activation='softmax'))
+    # model.add(layers.GRU(256, return_sequences=True))
+    # model.add(layers.SimpleRNN(128))
+    # # model.add(GlobalMaxPool1D())
+    # model.add(Dropout(0.5))
+    # model.add(Dense(50, activation='relu'))
+    # model.add(Dropout(0.5))
+    # model.add(Dense(50, activation='relu'))
+    # model.add(Dropout(0.5))
+    # model.add(Dense(class_label, activation='softmax'))
+
+    model.add(SpatialDropout1D(0.2))
+    model.add(LSTM(100, dropout=0.2, recurrent_dropout=0.2))
+    model.add(Dense(13, activation='softmax'))
+    model.compile(loss='categorical_crossentropy', optimizer='adam', metrics=['accuracy'])
 
     model.compile(loss='categorical_crossentropy', 
             optimizer='adam', 
@@ -103,7 +118,7 @@ def RNN_model(X_train):
     # return model
 
 def train_model(model, X_train, y_train):
-    epochs = 5
+    epochs = 1
     batch_size = 64
     model.fit(X_train, y_train, epochs=epochs, batch_size=batch_size,validation_split=0.1)
 
@@ -118,12 +133,15 @@ def one_hot_vec(y):
 def main():
     df = pd.read_csv('../dataset/prep.csv')
     X = preprocess(df, "clean")
-    X_train, X_test, y_train, y_test = train_test_split(X, one_hot_vec(df["n"]), test_size = 0.10, random_state = 42)
+    X_train, X_test, y_train, y_test = train_test_split(X, one_hot_vec(df["y"]), test_size = 0.10, random_state = 42)
 
     print(X_train.shape,y_train.shape)
     print(X_test.shape,y_test.shape)
 
     model = RNN_model(X_train)
+
+    pickleFile = 'trainedRNN.sav'
+    pickle.dump(model, open(pickleFile, 'wb'))
 
     train_model(model, X_train, y_train)
 
