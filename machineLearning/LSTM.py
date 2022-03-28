@@ -11,13 +11,15 @@ from keras.callbacks import EarlyStopping
 from sklearn.metrics import confusion_matrix
 import matplotlib.pyplot as plt
 
+from sklearn.metrics import f1_score
+
 import pickle
 
 total_vocabulary = 100000
 max_sequence_length = 200
 embedding_dim = 100
 
-df = pd.read_csv('../dataset/prep.csv')
+df = pd.read_csv('prep.csv')
 tokenizer = Tokenizer(num_words=total_vocabulary, filters='!"#$%&()*+,-./:;<=>?@[\]^_`{|}~', lower=True)
 
 def preprocess(df, text_column_name):
@@ -48,11 +50,12 @@ def LSTM_model(X_train):
     return model
 
 def train_model(model, X_train, y_train):
-    epochs = 1
+    epochs = 200
     batch_size = 64
     print(X_train.shape)
     print(y_train.shape)
-    model.fit(X_train, y_train, epochs=epochs, batch_size=batch_size,validation_split=0.1,callbacks=[EarlyStopping(monitor='val_loss', patience=3, min_delta=0.0001)])
+    history = model.fit(X_train, y_train, epochs=epochs, batch_size=batch_size,validation_split=0.1,callbacks=[EarlyStopping(monitor='val_loss', patience=3, min_delta=0.0001)])
+    return history
 
 def one_hot_vec(y):
     y-=1
@@ -71,35 +74,21 @@ def main():
 
     model = LSTM_model(X_train)
 
-    train_model(model, X_train, y_train)
-
-    pickleFile = 'trainedLSTM.sav'
-    pickle.dump(model, open(pickleFile, 'wb'))
+    history = train_model(model, X_train, y_train)
 
     accr = model.evaluate(X_test, y_test)
     print('Test set\n  Loss: {:0.3f}\n  Accuracy: {:0.3f}'.format(accr[0],accr[1]))
 
-    y_pred_oh = model.predict(X_test)
-    y_pred = np.argmax(y_pred_oh, axis=1)+1
-    y_test_decoded = np.argmax(y_test, axis=1)+1
-    cm = confusion_matrix(y_test_decoded, y_pred)
-    cm_df = pd.DataFrame(cm,
-                         index = ['Satire','Hoax','Propaganda', 'Reliable News'], 
-                         columns = ['Satire','Hoax','Propaganda', 'Reliable News'])
-    plt.figure(figsize=(6,5))
-    sns.heatmap(cm_df, annot=True, fmt=".0f")
-    plt.title('Confusion Matrix')
-    plt.ylabel('Actal Values')
-    plt.xlabel('Predicted Values')
-    plt.savefig("LSTMcmEval.jpg")
-
-    dftest = pd.read_csv("../dataset/testprep.csv")
+    dftest = pd.read_csv("testprep.csv")
     Xt = tokenizer.texts_to_sequences(dftest["clean"].values)
     Xt = pad_sequences(Xt, maxlen=max_sequence_length)
 
     yt = dftest["y"]
     ytp_oh = model.predict(Xt)
     ytp = np.argmax(ytp_oh, axis=1)+1
+
+    score = f1_score(yt, ytp, average='macro')
+    print('score on validation = {}'.format(score))
 
     cm = confusion_matrix(yt, ytp)
     cm_df = pd.DataFrame(cm,
@@ -111,6 +100,25 @@ def main():
     plt.ylabel('Actal Values')
     plt.xlabel('Predicted Values')
     plt.savefig("LSTMcm.jpg")
+    plt.clf()
+
+    acc.plot(history.history['accuracy'])
+    acc.plot(history.history['val_accuracy'])
+    acc.title('model accuracy')
+    acc.ylabel('accuracy')
+    acc.xlabel('epoch')
+    acc.legend(['train', 'val'], loc='upper left')
+    acc.savefig("LSTM_modelacc.jpg")
+    plt.clf()
+
+    los.plot(history.history['loss'])
+    los.plot(history.history['val_loss'])
+    los.title('model loss')
+    los.ylabel('loss')
+    los.xlabel('epoch')
+    los.legend(['train', 'val'], loc='upper left')
+    los.savefig("LSTM_modelloss.jpg")
+    plt.clf()
 
 main()
 
