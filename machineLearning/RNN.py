@@ -4,6 +4,7 @@ import keras
 import numpy as np
 import tensorflow as tf
 import pickle
+import matplotlib.pyplot as plt
 
 from keras import layers
 from keras.preprocessing.text import Tokenizer
@@ -64,8 +65,7 @@ def preprocess(text_column):
     sentence_vector = pad_sequences(sentence_vector, maxlen=max_sequence_length)
     print('Sentence vector:', sentence_vector)
     return sentence_vector
-
-
+    
 ############################
 #      Building models     #
 ############################
@@ -136,8 +136,8 @@ def train_model(model, X_train, y_train):
     """
     epochs = 1
     batch_size = 64
-    model.fit(X_train, y_train, epochs=epochs, batch_size=batch_size, validation_split=0.1)
-
+    training_history = model.fit(X_train, y_train, epochs=epochs, batch_size=batch_size, validation_split=0.1)
+    return training_history
 
 ############################
 #       Main function      #
@@ -152,7 +152,15 @@ def main():
 
     # Prepare and train RNN model
     model = LSTM_model(X_train)
-    train_model(model, X_train, y_train)
+    history = train_model(model, X_train, y_train)
+
+    plt.plot(history.history['loss'])
+    plt.plot(history.history['val_loss'])
+    plt.title('model loss')
+    plt.ylabel('loss')
+    plt.xlabel('epoch')
+    plt.legend(['train', 'val'], loc='upper left')
+    plt.savefig("RNNTraining.jpg")
 
     # Save this model
     pickleFile = 'trainedRNN.sav'
@@ -181,8 +189,10 @@ def one_hot_vec(y):
     print("Y transformed into one-hot vector: ", one_hot_vector)
     return one_hot_vector
 
+############################
+#      Unused functions    #
+############################
 
-# Unused class for generating model using RNN cells
 class MinimalRNNCell(keras.layers.Layer):
 
     def __init__(self, units, **kwargs):

@@ -88,7 +88,8 @@ def train_model(model, X_train, y_train):
     batch_size = 64
     print(X_train.shape)
     print(y_train.shape)
-    model.fit(X_train, y_train, epochs=epochs, batch_size=batch_size,validation_split=0.1,callbacks=[EarlyStopping(monitor='val_loss', patience=3, min_delta=0.0001)])
+    history = model.fit(X_train, y_train, epochs=epochs, batch_size=batch_size,validation_split=0.1,callbacks=[EarlyStopping(monitor='val_loss', patience=3, min_delta=0.0001)])
+    return history
 
 def one_hot_vec(y):
     y-=1
@@ -114,6 +115,7 @@ def main():
     score = f1_score(y_test, y_pred, average='macro')
     print('score on validation = {}'.format(score))
 
+    # generate confusion matrix
     cm = confusion_matrix(y_test, y_pred)
     cm_df = pd.DataFrame(cm,
                          index = ['Satire','Hoax','Propaganda', 'Reliable News'], 
