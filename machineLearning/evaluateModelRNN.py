@@ -1,16 +1,12 @@
 import pandas as pd
-import re
-from sklearn.feature_extraction.text import TfidfVectorizer
-from sklearn.feature_extraction.text import CountVectorizer
-import matplotlib.pyplot as plt
 import numpy as np
-from sklearn.utils import resample
-from scipy import sparse
-import gensim
-import collections 
-from collections import Counter
 import seaborn as sns
 import pickle
+
+from scipy import sparse
+from collections import Counter
+import matplotlib.pyplot as plt
+from textblob import TextBlob
 
 from keras.preprocessing.text import Tokenizer
 from keras.preprocessing.sequence import pad_sequences
@@ -19,20 +15,22 @@ from keras.models import Sequential
 from keras.layers import Dense, LSTM, Embedding, SpatialDropout2D
 from keras.callbacks import EarlyStopping
 
-from sklearn.metrics import f1_score
+from sklearn.metrics import f1_score, confusion_matrix
 from sklearn.linear_model import LogisticRegression
 from sklearn.naive_bayes import MultinomialNB
+from sklearn.utils import resample
+from sklearn.feature_extraction.text import TfidfVectorizer, CountVectorizer
 
-from sklearn.metrics import confusion_matrix
-import matplotlib.pyplot as plt
-
-## for sentiment
-from textblob import TextBlob
-
+############################
+#   Constant declaration   #
+############################
 total_vocabulary = 100000
 max_sequence_length = 200
 embedding_dim = 100
 
+########################
+#   Helper functions   #
+########################
 def predict(model, testX):
     pred = model.predict(testX)
     return pred
@@ -57,10 +55,24 @@ def length_features(df):
     df['unique_word_count'] = df["clean"].apply(lambda x: len(set(str(x).split(" "))))
     df['unique_total_ratio'] = df['unique_word_count'] / df['word_count']
 
-
 def sentiment(df):
     df["sentiment"] = df['clean'].apply(lambda x: 
                    TextBlob(x).sentiment.polarity)
+
+def preprocess_tfidf(df, text_column_name, tokenizer=None):
+    """
+    Creates the 2d vector for each of our sentences
+    :param df: dataframe
+    :param text_column_name: the name of column to be converted into a vector
+    :model: filename of pretrained model
+    """
+    vec = load_tokenizer(tokenizer)
+    tfidf = vec.transform(df['clean']).toarray()
+
+    X = tokenizer.texts_to_sequences(df[text_column_name].values)
+    X = pad_sequences(X, maxlen=max_sequence_length)
+    print('Shape of data tensor:', X.shape)
+    return X
 
 def preprocess(df, text_column_name, tokenizer=None):
     """
@@ -69,42 +81,19 @@ def preprocess(df, text_column_name, tokenizer=None):
     :param text_column_name: the name of column to be converted into a vector
     :model: filename of pretrained model
     """
-    # if tokenizer == None:
-    #     tokenizer = Tokenizer(num_words=total_vocabulary, filters='!"#$%&()*+,-./:;<=>?@[\]^_`{|}~', lower=True)
-    #     tokenizer.fit_on_texts(df[text_column_name].values)
-    # else:
-    #     tokenizer = load_tokenizer(tokenizer)
-    if tokenizer == None:
-        vec = TfidfVectorizer()
-        tfidf = vec.fit_transform(df['clean']).toarray()
-    else:
-        vec = load_tokenizer(tokenizer)
-        tfidf = vec.transform(df['clean']).toarray()
-    
-    word_index = tokenizer.word_index
-    print('Found %s unique tokens.' % len(word_index))
-
+    tokenizer = load_tokenizer(tokenizer)
     X = tokenizer.texts_to_sequences(df[text_column_name].values)
     X = pad_sequences(X, maxlen=max_sequence_length)
     print('Shape of data tensor:', X.shape)
-    return tfidf
-
-
-def LSTM_model(X_train):
-    model = Sequential()
-    model.add(Embedding(total_vocabulary, embedding_dim, input_length=X_train.shape[1]))
-    # model.add(SpatialDropout2D(0.2))
-    model.add(LSTM(100, dropout=0.2, recurrent_dropout=0.2))
-    model.add(Dense(4, activation='softmax'))
-    model.compile(loss='categorical_crossentropy', optimizer='adam', metrics=['accuracy'])
-    return model
+    return X
 
 def train_model(model, X_train, y_train):
     epochs = 5
     batch_size = 64
     print(X_train.shape)
     print(y_train.shape)
-    model.fit(X_train, y_train, epochs=epochs, batch_size=batch_size,validation_split=0.1,callbacks=[EarlyStopping(monitor='val_loss', patience=3, min_delta=0.0001)])
+    history = model.fit(X_train, y_train, epochs=epochs, batch_size=batch_size,validation_split=0.1,callbacks=[EarlyStopping(monitor='val_loss', patience=3, min_delta=0.0001)])
+    return history
 
 def one_hot_vec(y):
     y-=1
@@ -130,6 +119,7 @@ def main():
     score = f1_score(y_test, y_pred, average='macro')
     print('score on validation = {}'.format(score))
 
+    # generate confusion matrix
     cm = confusion_matrix(y_test, y_pred)
     cm_df = pd.DataFrame(cm,
                          index = ['Satire','Hoax','Propaganda', 'Reliable News'], 
