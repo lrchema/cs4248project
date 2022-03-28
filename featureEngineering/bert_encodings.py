@@ -17,10 +17,10 @@ bert_minilm_model = SentenceTransformer('all-MiniLM-L6-v2')
 
 df['bert_em'] = df['raw'].apply(bert_minilm_model.encode)
 
-df.to_csv("minilm_bert_embed.csv")
+df.to_pickle("minilm_bert_embed.pkl")
 
 bert_distilroberta_model = SentenceTransformer('all-distilroberta-v1')
 
 df2['bert_em'] = df2['raw'].apply(bert_distilroberta_model.encode)
 
-df2.to_csv("distilroberta_bert_embed.csv")
+df2.to_pickle("distilroberta_bert_embed.pkl")
