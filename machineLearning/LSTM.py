@@ -54,7 +54,22 @@ def train_model(model, X_train, y_train):
     batch_size = 64
     print(X_train.shape)
     print(y_train.shape)
-    history = model.fit(X_train, y_train, epochs=epochs, batch_size=batch_size,validation_split=0.1,callbacks=[EarlyStopping(monitor='val_loss', patience=3, min_delta=0.0001)])
+
+     # Get sample weights
+    y_vec = un_one_hot_vec(y_train)
+    sample_weight = np.ones(shape=(len(y_train),))
+    count = {}
+    for i in range(1, 5):
+        count[i] = sum(y==i for y in y_vec)
+    print("Count: ", count)
+    max_label_no = max(count, key = count.get)
+
+    for i in range(1, 5):
+        print(max_label_no/count[i])
+        sample_weight[y_vec == i] = max_label_no/count[i]
+    print("Sample weights: ", sample_weight)
+
+    history = model.fit(X_train, y_train, epochs=epochs, batch_size=batch_size,validation_split=0.1,sample_weight=sample_weight,callbacks=[EarlyStopping(monitor='val_loss', patience=3, min_delta=0.0001)])
     return history
 
 def one_hot_vec(y):
@@ -64,6 +79,15 @@ def one_hot_vec(y):
     one_hot_vector[np.arange(y.size), y] = 1
     print(one_hot_vector.shape)
     return one_hot_vector
+
+def un_one_hot_vec(oh):
+    """
+    Converts y values into one-hot vectors.
+    e.g. [[0, 1, 0, 0], [0, 0, 0, 1], [0, 0, 1, 0]] -> [1,3,2]
+
+    :param oh: all values to be converted
+    """
+    return np.argmax(oh, axis=1) + 1
 
 def main():
     X = preprocess(df, "clean")

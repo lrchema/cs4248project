@@ -5,8 +5,8 @@ import numpy as np
 import tensorflow as tf
 import pickle
 import matplotlib.pyplot as plt
-import nlpaug.augmenter.word as naw
-aug = naw.BackTranslationAug()
+# import nlpaug.augmenter.word as naw
+# aug = naw.BackTranslationAug()
 
 from keras import layers
 from keras.preprocessing.text import Tokenizer
@@ -167,20 +167,31 @@ def one_hot_vec(y):
     print("Y transformed into one-hot vector: ", one_hot_vector)
     return one_hot_vector
 
+def un_one_hot_vec(oh):
+    """
+    Converts y values into one-hot vectors.
+    e.g. [[0, 1, 0, 0], [0, 0, 0, 1], [0, 0, 1, 0]] -> [1,3,2]
+
+    :param oh: all values to be converted
+    """
+    return np.argmax(oh, axis=1) + 1
+
 ############################
 #        Upsampling        #
 ############################
 def augment_text(extra):
   def inner(text):
-    return aug.augment(text, n=extra)
+    print("Back translation")
+    # return aug.augment(text, n=extra)
   return inner
 
 # MAKE SURE THE HEADER OF THE LABEL IS NAMED "y" AND text IS NAMED "raw"
 def augment_df(df):
   count = df.groupby('y').size().to_dict()
+  print(count)
   max_label_no = count[max(count)]
 
-  for i in [1, 2, 3, 4]:
+  for i in [2, 4]:
     mask = (df['y'] == i)
     df.loc[mask, 'raw'] = df.loc[mask, 'raw'].apply(augment_text(max_label_no//count[i]))
 
@@ -255,9 +266,24 @@ def train_model(model, X_train, y_train):
     :param y_train: expected result
     """
     es = EarlyStopping(monitor='val_loss')
-    epochs = 1
+    epochs = 200
     batch_size = 64
-    training_history = model.fit(X_train, y_train, epochs=epochs, batch_size=batch_size, validation_split=0.1, callbacks=[es])
+
+     # Get sample weights
+    y_vec = un_one_hot_vec(y_train)
+    sample_weight = np.ones(shape=(len(y_train),))
+    count = {}
+    for i in range(1, 5):
+        count[i] = sum(y==i for y in y_vec)
+    print("Count: ", count)
+    max_label_no = max(count, key = count.get)
+
+    for i in range(1, 5):
+        print(max_label_no/count[i])
+        sample_weight[y_vec == i] = max_label_no/count[i]
+    print("Sample weights: ", sample_weight)
+
+    training_history = model.fit(X_train, y_train, epochs=epochs, batch_size=batch_size, validation_split=0.1, callbacks=[es], sample_weight=sample_weight)
     return training_history
 
 ############################
@@ -265,15 +291,16 @@ def train_model(model, X_train, y_train):
 ############################
 def main():
     # Read csv
-    df = pd.read_csv('../dataset/raw_data/fulltrain.csv')
+    df = pd.read_csv('../dataset/prep.csv')
     print("Original df: ", df)
 
     # Augment/upsample data
-    df = augment_df(df)
+    # df = augment_df(df)
+    # df.save("augment.csv")
     print("Augmented df: ", df)
 
     # Preprocess
-    df['clean'] = preprocess(df['raw'])
+    # df['clean'] = preprocess(df['raw'])
     print("Augmented and cleaned:", df)
 
     # Process input into vectors
