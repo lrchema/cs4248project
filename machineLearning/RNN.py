@@ -266,7 +266,7 @@ def train_model(model, X_train, y_train):
     :param y_train: expected result
     """
     es = EarlyStopping(monitor='val_loss')
-    epochs = 200
+    epochs = 2
     batch_size = 64
 
      # Get sample weights
@@ -276,7 +276,8 @@ def train_model(model, X_train, y_train):
     for i in range(1, 5):
         count[i] = sum(y==i for y in y_vec)
     print("Count: ", count)
-    max_label_no = max(count, key = count.get)
+    max_label_no = max(list(count.values()))
+    print("Max label number: ", max_label_no)
 
     for i in range(1, 5):
         print(max_label_no/count[i])
