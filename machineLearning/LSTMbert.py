@@ -12,6 +12,8 @@ from sklearn.metrics import confusion_matrix
 import matplotlib.pyplot as plt
 import tensorflow as tf
 
+from sklearn.metrics import f1_score
+
 import pickle
 
 total_vocabulary = 100000
