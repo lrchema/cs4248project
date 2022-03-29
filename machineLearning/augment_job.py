@@ -4,8 +4,8 @@ import pandas as pd
 import random
 import sys
 
-classNum = sys.argv[1]
-division = sys.argv[2]
+classNum = int(sys.argv[1])
+division = int(sys.argv[2])
 
 limits = [0,0.5,0.75,0.88,0.92,0.96,0.98]
 
@@ -35,6 +35,6 @@ def main():
     df = pd.read_csv('../dataset/raw_data/fulltrain.csv')
 
     df = augment_df(df)
-    df.to_csv(f"job_class{classNum}_{division}.csv", index=False)
+    df.to_csv(f'job_class{classNum}_{division}.csv', index=False)
 
 main()
