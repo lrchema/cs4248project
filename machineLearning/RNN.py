@@ -259,7 +259,16 @@ def train_model(model, X_train, y_train):
     es = EarlyStopping(monitor='val_loss')
     epochs = 1
     batch_size = 64
-    training_history = model.fit(X_train, y_train, epochs=epochs, batch_size=batch_size, validation_split=0.1, callbacks=[es])
+
+    sample_weight = np.ones(shape=(len(y_train),))
+
+    count = df.groupby('y').size().to_dict()
+    max_label_no = count[max(count)]
+
+    for i in range(1, 5):
+        sample_weight[y_train == i] = max_label_no/count[i]
+
+    training_history = model.fit(X_train, y_train, epochs=epochs, batch_size=batch_size, validation_split=0.1, callbacks=[es], sample_weight=sample_weight)
     return training_history
 
 ############################
