@@ -172,15 +172,17 @@ def one_hot_vec(y):
 ############################
 def augment_text(extra):
   def inner(text):
+    print("Back translation")
     return aug.augment(text, n=extra)
   return inner
 
 # MAKE SURE THE HEADER OF THE LABEL IS NAMED "y" AND text IS NAMED "raw"
 def augment_df(df):
   count = df.groupby('y').size().to_dict()
+  print(count)
   max_label_no = count[max(count)]
 
-  for i in [1, 2, 3, 4]:
+  for i in [2, 4]:
     mask = (df['y'] == i)
     df.loc[mask, 'raw'] = df.loc[mask, 'raw'].apply(augment_text(max_label_no//count[i]))
 
@@ -270,6 +272,7 @@ def main():
 
     # Augment/upsample data
     df = augment_df(df)
+    # df.save("augment.csv")
     print("Augmented df: ", df)
 
     # Preprocess
