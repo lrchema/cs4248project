@@ -61,7 +61,7 @@ def LSTM_model(X_train):
     model.compile(loss='categorical_crossentropy', optimizer='adam', metrics=['accuracy'])
     return model
 
-def train_model(model, X_train, y_train):
+def train_model(model, X_train, y_train, X_test, y_test):
     epochs = 200
     batch_size = 64
     print(X_train.shape)
@@ -81,7 +81,7 @@ def train_model(model, X_train, y_train):
         sample_weight[y_vec == i] = max_label_no/count[i]
     print("Sample weights: ", sample_weight)
 
-    history = model.fit(X_train, y_train, epochs=epochs, batch_size=batch_size,validation_split=0.2,sample_weight=sample_weight,callbacks=[EarlyStopping(monitor='val_loss', patience=3, min_delta=0.0001)])
+    history = model.fit(X_train, y_train, epochs=epochs, batch_size=batch_size, validation_data=(X_test, y_test) ,sample_weight=sample_weight,callbacks=[EarlyStopping(monitor='val_loss', patience=3, min_delta=0.0001)])
     return history
 
 def one_hot_vec(y):
@@ -110,7 +110,7 @@ def main():
 
     model = LSTM_model(X_train)
 
-    history = train_model(model, X_train, y_train)
+    history = train_model(model, X_train, y_train, X_test, y_test)
 
     accr = model.evaluate(X_test, y_test)
     print('Test set\n  Loss: {:0.3f}\n  Accuracy: {:0.3f}'.format(accr[0],accr[1]))
