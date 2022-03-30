@@ -12,6 +12,7 @@ from keras.layers import Dense, LSTM, Embedding, SpatialDropout2D, GlobalMaxPool
 from keras.callbacks import EarlyStopping
 from sklearn.metrics import confusion_matrix
 import matplotlib.pyplot as plt
+from tensorflow.keras.optimizers import SGD
 
 from sklearn.metrics import f1_score
 
@@ -34,7 +35,7 @@ def preprocess(df, text_column_name):
     :param num_words: limit number of words for the tokenizer to the most frequent x amount
     :param max_len: the max length of what we want each sentence to have
     """
-    
+
     tokenizer.fit_on_texts(df[text_column_name].values)
     word_index = tokenizer.word_index
     print('Found %s unique tokens.' % len(word_index))
@@ -52,13 +53,13 @@ def LSTM_model(X_train):
     model = Sequential()
     model.add(Embedding(total_vocabulary, embedding_dim, input_length=X_train.shape[1]))
     model.add(LSTM(128,activation='relu',return_sequences=True))
-    model.add(Dropout(0.2))
+    model.add(Dropout(0.1))
     model.add(LSTM(128,activation='relu'))
-    model.add(Dropout(0.2))
+    model.add(Dropout(0.1))
     model.add(Dense(32,activation='relu'))
-    model.add(Dropout(0.2))
+    model.add(Dropout(0.1))
     model.add(Dense(4,activation='softmax'))
-    model.compile(loss='categorical_crossentropy', optimizer='adam', metrics=['accuracy'])
+    model.compile(loss='categorical_crossentropy', metrics=['accuracy'], optimizer=SGD(lr=0.01))
     return model
 
 def train_model(model, X_train, y_train, X_test, y_test):
@@ -81,7 +82,7 @@ def train_model(model, X_train, y_train, X_test, y_test):
         sample_weight[y_vec == i] = max_label_no/count[i]
     print("Sample weights: ", sample_weight)
 
-    history = model.fit(X_train, y_train, epochs=epochs, batch_size=batch_size, validation_data=(X_test, y_test) ,sample_weight=sample_weight,callbacks=[EarlyStopping(monitor='val_loss', patience=3, min_delta=0.0001)])
+    history = model.fit(X_train, y_train, epochs=epochs, batch_size=batch_size, validation_data=(X_test, y_test),sample_weight=sample_weight,callbacks=[EarlyStopping(monitor='val_loss', patience=3, min_delta=0.0001)])
     return history
 
 def one_hot_vec(y):
@@ -141,7 +142,7 @@ def main():
 
     # cm = confusion_matrix(yt, ytp)
     # cm_df = pd.DataFrame(cm,
-    #                      index = ['Satire','Hoax','Propaganda', 'Reliable News'], 
+    #                      index = ['Satire','Hoax','Propaganda', 'Reliable News'],
     #                      columns = ['Satire','Hoax','Propaganda', 'Reliable News'])
     # fig, axs = plt.subplots(3)
     # axs[0] = sns.heatmap(cm_df, annot=True, fmt=".0f")
