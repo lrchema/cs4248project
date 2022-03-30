@@ -20,7 +20,7 @@ from sklearn.linear_model import LogisticRegression
 from sklearn.naive_bayes import MultinomialNB
 from sklearn.utils import resample
 from sklearn.feature_extraction.text import TfidfVectorizer, CountVectorizer
-
+import sys
 ############################
 #   Constant declaration   #
 ############################
@@ -56,7 +56,7 @@ def length_features(df):
     df['unique_total_ratio'] = df['unique_word_count'] / df['word_count']
 
 def sentiment(df):
-    df["sentiment"] = df['clean'].apply(lambda x: 
+    df["sentiment"] = df['clean'].apply(lambda x:
                    TextBlob(x).sentiment.polarity)
 
 def preprocess_tfidf(df, text_column_name, tokenizer=None):
@@ -103,16 +103,16 @@ def one_hot_vec(y):
     print(one_hot_vector.shape)
     return one_hot_vector
 
-
+unique_id = sys.argv[1]
 def main():
     df = read_file("../dataset/testprep.csv")
 
-    model = load_model('trainedRNN.sav')
+    model = load_model("trainedLSTM-"+str(unique_id)+".sav")
 
     y_test = df["y"]
     # print(y_test)
 
-    y_pred_oh = predict(model, preprocess(df, "clean", tokenizer="tokenizerRNN.sav"))
+    y_pred_oh = predict(model, preprocess(df, "clean", tokenizer=f"tokenizerLSTM-{unique_id}.sav"))
 
     y_pred = np.argmax(y_pred_oh, axis=1)+1
     # evaluate model
@@ -122,13 +122,13 @@ def main():
     # generate confusion matrix
     cm = confusion_matrix(y_test, y_pred)
     cm_df = pd.DataFrame(cm,
-                         index = ['Satire','Hoax','Propaganda', 'Reliable News'], 
+                         index = ['Satire','Hoax','Propaganda', 'Reliable News'],
                          columns = ['Satire','Hoax','Propaganda', 'Reliable News'])
     plt.figure(figsize=(6,5))
     sns.heatmap(cm_df, annot=True, fmt=".0f")
     plt.title('Confusion Matrix')
     plt.ylabel('Actal Values')
     plt.xlabel('Predicted Values')
-    plt.savefig("RNNcm.jpg")
+    plt.savefig(f"RNNcm-{unique_id}-{score}.jpg")
 
 main()
