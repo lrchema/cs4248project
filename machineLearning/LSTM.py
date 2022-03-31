@@ -44,9 +44,26 @@ def LSTM_model(X_train):
     model = Sequential()
     model.add(Embedding(total_vocabulary, embedding_dim, input_length=X_train.shape[1]))
     # model.add(SpatialDropout2D(0.2))
-    model.add(LSTM(100, dropout=0.2, recurrent_dropout=0.2))
-    model.add(Dense(4, activation='softmax'))
+    model.add(LSTM(128,input_shape=(embedded_docs.shape),activation='relu',return_sequences=True))
+
+    model.add(Dropout(0.2))
+
+    model.add(LSTM(128,activation='relu'))
+
+    model.add(Dropout(0.2))
+
+    model.add(Dense(32,activation='relu'))
+
+    model.add(Dropout(0.2))
+
+    model.add(Dense(4,activation='softmax'))
+
     model.compile(loss='categorical_crossentropy', optimizer='adam', metrics=['accuracy'])
+
+    model=Sequential()
+
+    model.add(Embedding(voc_size,embedding_vector_features,input_length=sent_length))
+
     return model
 
 def train_model(model, X_train, y_train):

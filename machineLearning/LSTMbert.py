@@ -11,7 +11,6 @@ from keras.callbacks import EarlyStopping
 from sklearn.metrics import confusion_matrix
 import matplotlib.pyplot as plt
 import tensorflow as tf
-
 from sklearn.metrics import f1_score
 
 import pickle
@@ -51,7 +50,7 @@ def LSTM_model(X_train):
     return model
 
 def train_model(model, X_train, y_train):
-    epochs = 5
+    epochs =1 
     batch_size = 64
     print(X_train.shape)
     print(y_train.shape)
@@ -70,7 +69,7 @@ def main():
     #X.apply(tf.convert_to_tensor)
     #tf.convert_to_tensor(X)
     Xnp = np.stack(X.to_numpy())
-
+    
     print(type(X[0]), type(Xnp))
     print("xnp shape: ", Xnp.shape)
     X_train, X_test, y_train, y_test = train_test_split(Xnp, one_hot_vec(df["y"]), test_size = 0.10, random_state = 42)
@@ -90,33 +89,46 @@ def main():
     y_pred_oh = model.predict(X_test)
     y_pred = np.argmax(y_pred_oh, axis=1)+1
     y_test_decoded = np.argmax(y_test, axis=1)+1
-    cm = confusion_matrix(y_test_decoded, y_pred)
-    cm_df = pd.DataFrame(cm,
-                         index = ['Satire','Hoax','Propaganda', 'Reliable News'], 
-                         columns = ['Satire','Hoax','Propaganda', 'Reliable News'])
-    plt.figure(figsize=(5,4))
-    sns.heatmap(cm_df, annot=True, fmt=".0f")
-    plt.title('Confusion Matrix')
-    plt.ylabel('Actal Values')
-    plt.xlabel('Predicted Values')
-    plt.savefig("LSTMBertcmEval.jpg")
 
     dftest = pd.read_pickle("distilroberta_bert_embed_test.pkl")
     Xt = np.stack(dftest["bert_em"].to_numpy())
+    Xt = np.asarray(Xt).astype(np.int)
+    Xt=tf.convert_to_tensor(Xt)
 
     yt = dftest["y"]
-    ytp = model.predict(Xt)
-
+    ytp_oh = model.predict(Xt)
+    yt = np.argmax(ytp_oh, axis=1)+1
+    print("yt ", yt)
+    print("ytp ", ytp)
+    score = f1_score(yt, ytp, average='macro')
+    print('score on validation = {}'.format(score))
+    
     cm = confusion_matrix(yt, ytp)
     cm_df = pd.DataFrame(cm,
                          index = ['Satire','Hoax','Propaganda', 'Reliable News'], 
                          columns = ['Satire','Hoax','Propaganda', 'Reliable News'])
-    plt.figure(figsize=(6,5))
-    sns.heatmap(cm_df, annot=True, fmt=".0f")
-    plt.title('Confusion Matrix')
-    plt.ylabel('Actal Values')
-    plt.xlabel('Predicted Values')
-    plt.savefig("LSTMbertcm.jpg")
+    fig, axs = plt.subplots(3)
+    axs[0] = sns.heatmap(cm_df, annot=True, fmt=".0f")
+    axs[0].set_title('Confusion Matrix')
+    axs[0].ylabel('Actal Values')
+    axs[0].xlabel('Predicted Values')
+    axs[0].savefig("LSTMbertcm.jpg")
+
+    axs[1].plot(history.history['accuracy'])
+    axs[1].plot(history.history['val_accuracy'])
+    axs[1].set_title('model accuracy')
+    axs[1].ylabel('accuracy')
+    axs[1].xlabel('epoch')
+    axs[1].legend(['train', 'val'], loc='upper left')
+    axs[1].savefig("LSTMbert_modelacc.jpg")
+
+    axs[2].plot(history.history['loss'])
+    axs[2].plot(history.history['val_loss'])
+    axs[2].set_title('model loss')
+    axs[2].ylabel('loss')
+    axs[2].xlabel('epoch')
+    axs[2].legend(['train', 'val'], loc='upper left')
+    axs[2].savefig("LSTMbert_modelloss.jpg")
 main()
 
 
