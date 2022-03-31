@@ -105,7 +105,7 @@ def one_hot_vec(y):
 
 unique_id = sys.argv[1]
 def main():
-    df = read_file("../dataset/testprep.csv")
+    df = read_file("testprep.csv")
 
     model = load_model("trainedLSTM-"+str(unique_id)+".sav")
 

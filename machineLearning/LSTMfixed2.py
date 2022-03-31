@@ -8,7 +8,7 @@ from keras.preprocessing.text import Tokenizer
 from keras.preprocessing.sequence import pad_sequences
 from sklearn.model_selection import train_test_split
 from keras.models import Sequential
-from keras.layers import Dense, LSTM, Embedding, SpatialDropout2D, GlobalMaxPool1D, Dropout, SpatialDropout1D
+from keras.layers import Dense, LSTM, Embedding, SpatialDropout2D, GlobalMaxPool1D, Dropout, SpatialDropout1D, Bidirectional
 from keras.callbacks import EarlyStopping
 from keras.layers.core import Dense, Activation, Dropout
 from sklearn.metrics import confusion_matrix
@@ -54,13 +54,13 @@ def LSTM_model(X_train):
     model = Sequential()
     model.add(Embedding(total_vocabulary, embedding_dim, input_length=X_train.shape[1]))
     model.add(SpatialDropout1D(0.3))
-    model.add(LSTM(300, dropout=0.3, recurrent_dropout=0.3))
+    model.add(Bidirectional(LSTM(300, dropout=0.3, recurrent_dropout=0.3)))
 
-    model.add(Dense(1024, activation='relu'))
+    model.add(Dense(1024, activation='silu')) 
     model.add(Dropout(0.8))
 
-    model.add(Dense(1024, activation='relu'))
-    model.add(Dropout(0.8))
+    model.add(Dense(512, activation='relu'))
+    model.add(Dropout(0.6))
 
     model.add(Dense(4))
     model.add(Activation('softmax'))
