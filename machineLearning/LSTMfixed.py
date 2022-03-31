@@ -23,7 +23,7 @@ max_sequence_length = 200
 embedding_dim = 100
 
 # Provide this id so that it will save LSTM training data to unique file
-unique_id = int(sys.argv[1])
+unique_id = sys.argv[1]
 
 df = pd.read_csv('../dataset/prep.csv')
 tokenizer = Tokenizer(num_words=total_vocabulary, filters='!"#$%&()*+,-./:;<=>?@[\]^_`{|}~', lower=True)
@@ -40,7 +40,7 @@ def preprocess(df, text_column_name):
     word_index = tokenizer.word_index
     print('Found %s unique tokens.' % len(word_index))
 
-    pickleFile = f'tokenizerRNN-{unique_id}.sav'
+    pickleFile = f'tokenizerLSTM-{unique_id}.sav'
     pickle.dump(tokenizer, open(pickleFile, 'wb'))
 
     X = tokenizer.texts_to_sequences(df[text_column_name].values)
@@ -52,19 +52,21 @@ def preprocess(df, text_column_name):
 def LSTM_model(X_train):
     model = Sequential()
     model.add(Embedding(total_vocabulary, embedding_dim, input_length=X_train.shape[1]))
-    model.add(LSTM(128,activation='relu',return_sequences=True))
-    model.add(Dropout(0.1))
     model.add(LSTM(128,activation='relu'))
-    model.add(Dropout(0.1))
-    model.add(Dense(32,activation='relu'))
-    model.add(Dropout(0.1))
-    model.add(Dense(4,activation='softmax'))
+    #model.add(GlobalMaxPool1D())
+    model.add(Dropout(0.6))
+    model.add(Dense(128, activation='relu'))
+    #model.add(LSTM(128,activation='relu'))
+    model.add(Dropout(0.6))
+    model.add(Dense(32, activation='relu'))
+    model.add(Dropout(0.6))
+    model.add(Dense(4, activation='softmax'))
     model.compile(loss='categorical_crossentropy', metrics=['accuracy'], optimizer=SGD(lr=0.01))
     return model
 
 def train_model(model, X_train, y_train, X_test, y_test):
     epochs = 200
-    batch_size = 64
+    batch_size = 128
     print(X_train.shape)
     print(y_train.shape)
 
@@ -105,7 +107,7 @@ def un_one_hot_vec(oh):
 def main():
     X = preprocess(df, "clean")
 
-    X_train, X_test, y_train, y_test = train_test_split(X, one_hot_vec(df["y"]), test_size=0.20, random_state = 42, stratify=one_hot_vec(df["y"]))
+    X_train, X_test, y_train, y_test = train_test_split(X, one_hot_vec(df["y"]), stratify=df["y"], test_size=0.20, random_state = 42)
     print(X_train.shape,y_train.shape)
     print(X_test.shape,y_test.shape)
 

@@ -14,6 +14,10 @@ import matplotlib.pyplot as plt
 from sklearn.metrics import f1_score
 
 import pickle
+import sys
+from tensorflow.keras.optimizers import SGD
+
+id = sys.argv[1]
 
 total_vocabulary = 100000
 max_sequence_length = 200
@@ -29,12 +33,12 @@ def preprocess(df, text_column_name):
     :param num_words: limit number of words for the tokenizer to the most frequent x amount
     :param max_len: the max length of what we want each sentence to have
     """
-    
+
     tokenizer.fit_on_texts(df[text_column_name].values)
     word_index = tokenizer.word_index
     print('Found %s unique tokens.' % len(word_index))
 
-    pickleFile = 'tokenizerRNN.sav'
+    pickleFile = f'tokenizerLSTM-{id}.sav'
     pickle.dump(tokenizer, open(pickleFile, 'wb'))
 
     X = tokenizer.texts_to_sequences(df[text_column_name].values)
@@ -49,13 +53,15 @@ def LSTM_model(X_train):
     # model.add(SpatialDropout2D(0.2))
     model.add(LSTM(100, dropout=0.2, recurrent_dropout=0.2))
     # model.add(GlobalMaxPool1D())
-    model.add(Dense(4, activation='softmax'))
-    model.add(Dropout(0.5))
+    #model.add(Dense(4, activation='softmax'))
+    # model.add(Dropout(0.6))
+    # model.add(Dense(32, activation='silu'))
+    # model.add(Dropout(0.4))
     model.add(Dense(4, activation='softmax'))
     model.compile(loss='categorical_crossentropy', optimizer='adam', metrics=['accuracy'])
     return model
 
-def train_model(model, X_train, y_train):
+def train_model(model, X_train, y_train, X_test, y_test):
     epochs = 200
     batch_size = 64
     print(X_train.shape)
@@ -75,7 +81,7 @@ def train_model(model, X_train, y_train):
         sample_weight[y_vec == i] = max_label_no/count[i]
     print("Sample weights: ", sample_weight)
 
-    history = model.fit(X_train, y_train, epochs=epochs, batch_size=batch_size,validation_split=0.2,sample_weight=sample_weight,callbacks=[EarlyStopping(monitor='val_loss', patience=3, min_delta=0.0001)])
+    history = model.fit(X_train, y_train, epochs=epochs, batch_size=batch_size,validation_split=0.2, sample_weight=sample_weight,callbacks=[EarlyStopping(monitor='val_loss', patience=3, min_delta=0.0001)])
     return history
 
 def one_hot_vec(y):
@@ -104,13 +110,13 @@ def main():
 
     model = LSTM_model(X_train)
 
-    history = train_model(model, X_train, y_train)
+    history = train_model(model, X_train, y_train, X_test, y_test)
 
     accr = model.evaluate(X_test, y_test)
     print('Test set\n  Loss: {:0.3f}\n  Accuracy: {:0.3f}'.format(accr[0],accr[1]))
 
     # Save this model
-    pickleFile = 'trainedLSTM.sav'
+    pickleFile = f'trainedLSTM-{id}.sav'
     pickle.dump(model, open(pickleFile, 'wb'))
 
     # Plot the loss function
@@ -120,7 +126,7 @@ def main():
     plt.ylabel('loss')
     plt.xlabel('epoch')
     plt.legend(['train', 'val'], loc='upper left')
-    plt.savefig("LSTMTraining.jpg")
+    plt.savefig(f"LSTMTraining-{id}.jpg")
 
     # dftest = pd.read_csv("testprep.csv")
     # Xt = tokenizer.texts_to_sequences(dftest["clean"].values)
@@ -135,7 +141,7 @@ def main():
 
     # cm = confusion_matrix(yt, ytp)
     # cm_df = pd.DataFrame(cm,
-    #                      index = ['Satire','Hoax','Propaganda', 'Reliable News'], 
+    #                      index = ['Satire','Hoax','Propaganda', 'Reliable News'],
     #                      columns = ['Satire','Hoax','Propaganda', 'Reliable News'])
     # fig, axs = plt.subplots(3)
     # axs[0] = sns.heatmap(cm_df, annot=True, fmt=".0f")
