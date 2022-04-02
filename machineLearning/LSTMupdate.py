@@ -23,8 +23,8 @@ from tensorflow.keras.optimizers import SGD
 id = sys.argv[1]
 
 total_vocabulary = 100000
-long_sequence_length = 200
-short_sequence_length = 40
+long_sequence_length = 100
+short_sequence_length = 20
 seq_per_text = long_sequence_length//short_sequence_length
 
 embedding_dim = 100
@@ -59,7 +59,7 @@ def preprocess(df, text_column_name):
         short_seqs = []
         for seq_no in range(seq_per_text):
             short_seqs.append(sequence[seq_no * short_sequence_length : (seq_no + 1) * short_sequence_length])
-        return short_seqs    
+        return short_seqs
     df[text_column_name] = df[text_column_name].apply(text_to_sequence)
 
     return df.explode(text_column_name, ignore_index=True)
@@ -87,15 +87,17 @@ def train_model(model, X_train, y_train, X_test, y_test):
 
      # Get sample weights
     y_vec = un_one_hot_vec(y_train)
-    sample_weight = np.ones(shape=(len(y_train),))
+    sample_weight = np.zeros(shape=(len(y_train)), dtype=np.float64)
     count = {}
     for i in range(1, 5):
         count[i] = sum(y==i for y in y_vec)
     print("Count: ", count)
     max_label_no = max(list(count.values()))
 
+    print(y_vec)
     for i in range(1, 5):
         print(max_label_no/count[i])
+        print(y_vec == i)
         sample_weight[y_vec == i] = max_label_no/count[i]
     print("Sample weights: ", sample_weight)
 
@@ -103,11 +105,10 @@ def train_model(model, X_train, y_train, X_test, y_test):
     return history
 
 def one_hot_vec(y):
-    y-=1
-    print("y",y)
-    one_hot_vector = np.zeros((y.size, y.max()+1))
-    one_hot_vector[np.arange(y.size), y] = 1
-    print(one_hot_vector.shape)
+    print("one_hot_vec input: ", y)
+    one_hot_vector = np.zeros((y.size, y.max()))
+    one_hot_vector[np.arange(y.size), y-1] = 1
+    print("one_hot_vector output", one_hot_vector)
     return one_hot_vector
 
 def un_one_hot_vec(oh):
@@ -123,13 +124,16 @@ def main():
     dataframe = pd.read_csv('../dataset/prep.csv')
     df = preprocess(dataframe, "clean")
     X = np.stack(df["clean"].to_numpy())
-    X = np.asarray(X).astype(np.int)
-    X = tf.convert_to_tensor(X)
-    X = np.array(df["clean"].to_list())
+    #X = np.asarray(X).astype(np.int)
+    #X = tf.convert_to_tensor(X)
+    #X = np.array(df["clean"].to_list())
     # X = tf.convert_to_tensor(X, dtype=np.int32)
-    print(X)
+    print("X", X)
 
-    X_train, X_test, y_train, y_test = train_test_split(X, one_hot_vec(df["y"]), test_size = 0.10, random_state = 42)
+
+    X_train, X_test, y_train, y_test = train_test_split(X, one_hot_vec(df["y"]), test_size = 0.10, random_state = 42, stratify=df["y"])
+
+    print(sum(un_one_hot_vec(y_train) !=2 ))
     print(X_train.shape,y_train.shape)
     print(X_test.shape,y_test.shape)
 
