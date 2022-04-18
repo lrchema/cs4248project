@@ -48,15 +48,23 @@ def preprocess(df, text_column_name):
 def Bert_model(X_train):
     model = Sequential()
     model.add(Dense(500))
-    # model.add(LeakyReLU(alpha=0.1))
+    model.add(LeakyReLU(alpha=0.1))
+    model.add(Dropout(0.3))
+    model.add(Dense(400))#, activation='silu'))
+    model.add(LeakyReLU(alpha=0.1))
+    model.add(Dropout(0.3))
+    model.add(Dense(300))#, activation='silu'))
+    model.add(LeakyReLU(alpha=0.1))
+    model.add(Dense(200))#, activation='silu'))
+    model.add(LeakyReLU(alpha=0.1))
     model.add(Dense(4, activation='softmax'))
     #model.add(Activation('softmax'))
     model.compile(loss='categorical_crossentropy', optimizer='adam', metrics=['accuracy'])
     return model
 
 def train_model(model, X_train, y_train, X_test, y_test):
-    epochs = 12
-    batch_size = 256
+    epochs = 100
+    batch_size = 512 
     print(X_train.shape)
     print(y_train.shape)
 
@@ -74,7 +82,7 @@ def train_model(model, X_train, y_train, X_test, y_test):
         sample_weight[y_vec == i] = max_label_no/count[i]
     print("Sample weights: ", sample_weight)
 
-    history = model.fit(X_train, y_train, epochs=epochs, batch_size=batch_size, validation_data=(X_test, y_test),callbacks=[EarlyStopping(monitor='val_loss', patience=3, min_delta=0.0001)])
+    history = model.fit(X_train, y_train, epochs=epochs, batch_size=batch_size, validation_data=(X_test, y_test),callbacks=[EarlyStopping(monitor='val_loss', patience=5, min_delta=0.0001)])
     return history
 
 def one_hot_vec(y):

@@ -48,15 +48,21 @@ def preprocess(df, text_column_name):
 def Bert_model(X_train):
     model = Sequential()
     model.add(Dense(500))
-    # model.add(LeakyReLU(alpha=0.1))
+    model.add(LeakyReLU(alpha=0.1))
+#    model.add(Dropout(0.6))
+    model.add(Dense(400, activation='silu'))
+#    model.add(LeakyReLU(alpha=0.1))
+    model.add(Dropout(0.4))
+    model.add(Dense(100, activation='silu'))
+    model.add(LeakyReLU(alpha=0.1))
     model.add(Dense(4, activation='softmax'))
     #model.add(Activation('softmax'))
     model.compile(loss='categorical_crossentropy', optimizer='adam', metrics=['accuracy'])
     return model
 
 def train_model(model, X_train, y_train, X_test, y_test):
-    epochs = 12
-    batch_size = 256
+    epochs = 100
+    batch_size = 256 
     print(X_train.shape)
     print(y_train.shape)
 
